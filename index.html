@@ -34,6 +34,7 @@
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'scan': 'scan 8s linear infinite',
                         'flash': 'flash 0.5s',
+                        'spin-fast': 'spin 0.5s linear infinite',
                     },
                     keyframes: {
                         scan: {
@@ -95,6 +96,10 @@
             border-left: 2px solid #00f3ff;
         }
 
+        .active-nav-marker {
+            display: block !important;
+        }
+
         .btn-icon {
             @apply p-2 rounded hover:bg-white/5 text-muted hover:text-primary transition-colors cursor-pointer;
         }
@@ -153,19 +158,23 @@
         </div>
         
         <div class="flex flex-col gap-6 w-full">
-            <div class="nav-item active group relative w-full flex justify-center cursor-pointer" onclick="switchView('incidents')">
-                <i class="fa-solid fa-list-ul text-lg text-primary group-hover:text-white transition-colors"></i>
-                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
+            <!-- Incidents Nav Item -->
+            <div id="nav-incidents" class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="switchView('incidents')">
+                <i class="fa-solid fa-list-ul text-lg text-muted group-hover:text-primary transition-colors"></i>
+                <!-- Active Marker -->
+                <div class="marker hidden absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
                 <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">INCIDENTS</div>
             </div>
 
-            <div class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="switchView('dashboard')">
-                <i class="fa-solid fa-chart-line text-lg text-muted group-hover:text-white transition-colors"></i>
-                <div class="hidden active-marker absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
+            <!-- Dashboard Nav Item -->
+            <div id="nav-dashboard" class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="switchView('dashboard')">
+                <i class="fa-solid fa-chart-line text-lg text-muted group-hover:text-primary transition-colors"></i>
+                <div class="marker hidden absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
                 <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">DASHBOARD</div>
             </div>
 
-            <div class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="toggleTerminal()">
+            <!-- Terminal Nav Item -->
+            <div id="nav-terminal" class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="toggleTerminal()">
                 <i class="fa-solid fa-terminal text-lg text-muted group-hover:text-secondary transition-colors"></i>
                 <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">TERMINAL (~)</div>
             </div>
@@ -194,24 +203,22 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <div class="hidden md:flex items-center bg-black/30 border border-border rounded px-3 py-1.5 w-64">
-                    <i class="fa-solid fa-search text-muted text-xs mr-2"></i>
-                    <input type="text" placeholder="SEARCH LOGS..." class="bg-transparent border-none outline-none text-xs text-white w-full font-mono placeholder-gray-700">
-                </div>
                 <div class="text-xs font-mono text-primary" id="clock">00:00:00 Z</div>
             </div>
         </header>
 
         <!-- VIEW: INCIDENTS (Double Pane) -->
-        <div id="view-incidents" class="flex-1 flex overflow-hidden">
+        <div id="view-incidents" class="flex-1 flex overflow-hidden relative">
             
             <!-- LEFT: ALERT QUEUE -->
-            <div class="w-full md:w-1/2 lg:w-5/12 flex flex-col border-r border-border bg-black/20">
+            <div id="panel-queue" class="w-full md:w-5/12 flex flex-col border-r border-border bg-black/20 z-10">
                 <!-- Toolbar -->
                 <div class="h-10 border-b border-border flex items-center px-4 justify-between bg-panel/30">
                     <div class="text-[10px] font-bold text-gray-400 tracking-wider">INCIDENT QUEUE</div>
                     <div class="flex gap-2">
-                        <button class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 hover:bg-primary/20 transition">REFRESH</button>
+                        <button onclick="refreshIncidents()" id="btn-refresh" class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 hover:bg-primary/20 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate"></i> REFRESH
+                        </button>
                         <button class="text-[10px] text-muted hover:text-white px-2 py-0.5"><i class="fa-solid fa-filter"></i> FILTER</button>
                     </div>
                 </div>
@@ -230,33 +237,44 @@
                 
                 <!-- Footer Status -->
                 <div class="h-8 border-t border-border flex items-center px-4 text-[10px] text-muted justify-between bg-panel/50">
-                    <span>8 TOTAL INCIDENTS</span>
+                    <span id="incident-count">8 TOTAL INCIDENTS</span>
                     <span><i class="fa-solid fa-check-circle text-secondary"></i> ALL SYSTEMS NORMAL</span>
                 </div>
             </div>
 
             <!-- RIGHT: CONTEXT PANEL -->
-            <div id="context-panel" class="hidden md:flex flex-1 flex-col bg-panel/20 relative">
+            <div id="context-panel" class="hidden md:flex flex-1 flex-col bg-panel/20 relative absolute inset-0 md:static z-20 md:z-auto bg-black md:bg-transparent">
                 
-                <!-- Placeholder State -->
-                <div id="context-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-muted opacity-50">
-                    <i class="fa-solid fa-radar text-4xl mb-4 animate-pulse-slow"></i>
-                    <div class="text-xs font-mono">SELECT AN INCIDENT TO INVESTIGATE</div>
+                <!-- Placeholder State (Desktop Only) -->
+                <div id="context-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-muted opacity-50 hidden md:flex">
+                    <div class="flex flex-col items-center justify-center h-full">
+                        <i class="fa-solid fa-radar text-4xl mb-4 animate-pulse-slow"></i>
+                        <div class="text-xs font-mono">SELECT AN INCIDENT TO INVESTIGATE</div>
+                    </div>
                 </div>
 
                 <!-- Active Content -->
-                <div id="context-content" class="hidden flex-col h-full">
+                <div id="context-content" class="hidden flex-col h-full w-full">
                     <!-- Header -->
                     <div class="h-16 border-b border-border flex items-center justify-between px-6 bg-panel/40">
-                        <div>
-                            <div class="text-xl font-display text-white" id="detail-title">TITLE</div>
-                            <div class="text-xs text-primary font-mono" id="detail-subtitle">SUBTITLE</div>
+                        <div class="flex items-center gap-3">
+                            <!-- Mobile Back Button -->
+                            <button class="md:hidden text-primary border border-border p-2 rounded hover:bg-white/10" onclick="closeDetailMobile()">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <div>
+                                <div class="text-xl font-display text-white truncate w-48 md:w-auto" id="detail-title">TITLE</div>
+                                <div class="text-xs text-primary font-mono truncate w-48 md:w-auto" id="detail-subtitle">SUBTITLE</div>
+                            </div>
                         </div>
                         <div class="flex gap-2">
-                            <button class="px-3 py-1 bg-secondary/10 text-secondary text-xs border border-secondary/20 hover:bg-secondary/20 rounded">
+                             <button class="hidden md:block px-3 py-1 bg-secondary/10 text-secondary text-xs border border-secondary/20 hover:bg-secondary/20 rounded">
                                 <i class="fa-solid fa-check mr-1"></i> MARK RESOLVED
                             </button>
-                            <button class="p-1.5 text-muted hover:text-white"><i class="fa-solid fa-share-nodes"></i></button>
+                            <!-- Desktop Close Button -->
+                            <button class="hidden md:block text-muted hover:text-white px-2" onclick="closeDetailDesktop()">
+                                <i class="fa-solid fa-xmark text-lg"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -264,7 +282,7 @@
                     <div class="flex-1 overflow-y-auto p-6 space-y-6">
                         
                         <!-- Analysis Widget -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="glass-panel p-3 rounded">
                                 <div class="text-[10px] text-muted mb-1">AUTOMATED ANALYSIS</div>
                                 <div class="text-sm text-secondary font-mono flex items-center gap-2">
@@ -273,7 +291,7 @@
                             </div>
                             <div class="glass-panel p-3 rounded">
                                 <div class="text-[10px] text-muted mb-1">RELATED ARTIFACTS</div>
-                                <div class="text-sm text-white font-mono" id="detail-tags">0</div>
+                                <div class="text-sm text-white font-mono flex flex-wrap" id="detail-tags">0</div>
                             </div>
                         </div>
 
@@ -287,11 +305,13 @@
                         
                         <!-- JSON Data -->
                          <div class="glass-panel p-0 rounded overflow-hidden">
-                            <div class="bg-black/40 px-3 py-1 text-[10px] text-muted border-b border-border flex justify-between">
+                            <div class="bg-black/40 px-3 py-1 text-[10px] text-muted border-b border-border flex justify-between items-center">
                                 <span>RAW_DATA.JSON</span>
-                                <span class="cursor-pointer hover:text-white">COPY</span>
+                                <span onclick="copyJSON()" id="btn-copy" class="cursor-pointer text-primary hover:text-white flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> <span>COPY</span>
+                                </span>
                             </div>
-                            <pre id="detail-json" class="p-3 text-[10px] text-green-500 overflow-x-auto font-mono bg-black/20"></pre>
+                            <pre id="detail-json" class="p-3 text-[10px] text-green-500 overflow-x-auto font-mono bg-black/20 select-all"></pre>
                         </div>
 
                     </div>
@@ -329,11 +349,11 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Skills Heatmap -->
-                <div class="glass-panel p-4 rounded h-96 flex flex-col">
+                <div class="glass-panel p-4 rounded h-96 flex flex-col relative">
                     <div class="flex justify-between items-center mb-4">
                         <span class="text-xs text-primary font-bold">:: ARSENAL_COVERAGE</span>
                     </div>
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative w-full h-full overflow-hidden">
                         <canvas id="skillsChart"></canvas>
                     </div>
                 </div>
@@ -361,6 +381,29 @@
                              <div class="text-sm text-white">BS Cybersecurity</div>
                              <div class="text-xs text-muted">Michigan Tech Univ | 2018 - 2022</div>
                          </div>
+                    </div>
+
+                    <!-- Verified Credentials Links -->
+                    <div class="mt-2 border-t border-border pt-4">
+                        <div class="text-xs text-secondary font-bold mb-2">:: ACTIVE CREDENTIALS</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <a href="https://www.giac.org/certified-professional/Jacson-Ott/249950" target="_blank" class="flex items-center justify-between p-2 bg-black/30 border border-border hover:border-secondary transition-colors group">
+                                <span class="text-xs text-white">GIAC GCFA</span>
+                                <i class="fa-solid fa-external-link text-[10px] text-muted group-hover:text-secondary"></i>
+                            </a>
+                            <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/S8DL65NM63Q11NC8" target="_blank" class="flex items-center justify-between p-2 bg-black/30 border border-border hover:border-secondary transition-colors group">
+                                <span class="text-xs text-white">CompTIA Sec+</span>
+                                <i class="fa-solid fa-external-link text-[10px] text-muted group-hover:text-secondary"></i>
+                            </a>
+                            <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/WFOHELP36GE41595" target="_blank" class="flex items-center justify-between p-2 bg-black/30 border border-border hover:border-secondary transition-colors group">
+                                <span class="text-xs text-white">CompTIA Net+</span>
+                                <i class="fa-solid fa-external-link text-[10px] text-muted group-hover:text-secondary"></i>
+                            </a>
+                             <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/825V169FNPRE1KKR" target="_blank" class="flex items-center justify-between p-2 bg-black/30 border border-border hover:border-secondary transition-colors group">
+                                <span class="text-xs text-white">CompTIA A+</span>
+                                <i class="fa-solid fa-external-link text-[10px] text-muted group-hover:text-secondary"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -458,12 +501,50 @@
                 role: "Governance & Compliance Intern",
                 company: "Fiat Chrysler (FCA)",
                 date: "Jun 2020 - Aug 2020",
-                severity: "info",
+                severity: "low",
                 tags: ["GRC", "Policy", "CTPAT", "NAFTA"],
                 details: [
                     "Mapped CTPAT 2020 criteria to internal policies and streamlined border crossing process.",
                     "Reviewed and revised 45% of NAFTA FCA cybersecurity policies (applying to 80k users).",
                     "Identified friction points in external app security approval workflows."
+                ]
+            },
+            {
+                id: "INC-STUDENT-001",
+                role: "President | Networking Team Lead",
+                company: "Networking Student Assoc.",
+                date: "Sep 2020 - Present",
+                severity: "low",
+                tags: ["Leadership", "Networking", "Automation", "Teaching"],
+                details: [
+                    "Led Network Auditing and Documentation initiatives.",
+                    "Implemented Network Automation projects.",
+                    "Provided leadership and teaching mentorship to student members."
+                ]
+            },
+             {
+                id: "INC-STUDENT-002",
+                role: "Member | CTF Committee",
+                company: "RedTeam",
+                date: "Sep 2019 - Present",
+                severity: "low",
+                tags: ["CTF", "Security", "Challenge Creation"],
+                details: [
+                    "Created Capture The Flag (CTF) challenges for competitions.",
+                    "Ranked in Top 10% of National Cyber League Competitors."
+                ]
+            },
+             {
+                id: "INC-STUDENT-003",
+                role: "System Administrator",
+                company: "Homelab",
+                date: "Jan 2016 - Present",
+                severity: "low",
+                tags: ["Self-Hosting", "AD", "Virtualization"],
+                details: [
+                    "Managed Remote Access and Infrastructure Management.",
+                    "Configured File Sharing and Windows Domain Management.",
+                    "Maintained Home Security systems and network segmentation."
                 ]
             },
             {
@@ -498,7 +579,8 @@
         function renderIncidents() {
             const list = document.getElementById('incident-list');
             list.innerHTML = '';
-
+            
+            // Randomly reshuffle for "refresh" effect if needed, but for resume keep sorted
             jobs.forEach((job, index) => {
                 let sevColor = 'text-gray-500';
                 let sevIcon = 'fa-circle-info';
@@ -506,6 +588,7 @@
                 if(job.severity === 'critical') { sevColor = 'text-alert'; sevIcon = 'fa-radiation'; }
                 else if(job.severity === 'high') { sevColor = 'text-warning'; sevIcon = 'fa-triangle-exclamation'; }
                 else if(job.severity === 'medium') { sevColor = 'text-secondary'; sevIcon = 'fa-circle-exclamation'; }
+                else if(job.severity === 'low') { sevColor = 'text-blue-400'; sevIcon = 'fa-circle-check'; }
 
                 const el = document.createElement('div');
                 el.className = `grid grid-cols-12 gap-2 px-4 py-3 border-b border-border row-hover transition-all text-xs`;
@@ -522,6 +605,49 @@
                 `;
                 list.appendChild(el);
             });
+            document.getElementById('incident-count').innerText = `${jobs.length} TOTAL INCIDENTS`;
+        }
+
+        function refreshIncidents() {
+            const btn = document.getElementById('btn-refresh');
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = `<i class="fa-solid fa-rotate animate-spin-fast"></i> REFRESHING...`;
+            btn.classList.add('text-white');
+            
+            // Clear list briefly
+            const list = document.getElementById('incident-list');
+            list.style.opacity = '0.5';
+
+            setTimeout(() => {
+                renderIncidents();
+                list.style.opacity = '1';
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('text-white');
+            }, 800);
+        }
+
+        function copyJSON() {
+            const jsonText = document.getElementById('detail-json').innerText;
+            const btn = document.getElementById('btn-copy');
+            const originalHTML = btn.innerHTML;
+            
+            // Use Clipboard API or execCommand fallback
+            const textArea = document.createElement("textarea");
+            textArea.value = jsonText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                btn.innerHTML = `<i class="fa-solid fa-check text-secondary"></i> <span class="text-secondary">COPIED</span>`;
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 2000);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
         }
 
         function selectIncident(index, element) {
@@ -529,9 +655,21 @@
             document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
             element.classList.add('row-selected');
 
+            // Mobile: Hide List, Show Detail
+            if(window.innerWidth < 768) {
+                document.getElementById('panel-queue').classList.add('hidden');
+            }
+            
             // Show Panel
             document.getElementById('context-placeholder').classList.add('hidden');
+            document.getElementById('context-placeholder').classList.remove('flex'); // remove flex to hide completely
+            document.getElementById('context-placeholder').classList.remove('md:flex');
+            
             const content = document.getElementById('context-content');
+            const panel = document.getElementById('context-panel');
+            
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
             content.classList.remove('hidden');
             content.classList.add('flex');
 
@@ -558,21 +696,47 @@
             document.getElementById('detail-json').innerText = JSON.stringify(job, null, 2);
         }
 
+        function closeDetailMobile() {
+            document.getElementById('panel-queue').classList.remove('hidden');
+            document.getElementById('context-panel').classList.add('hidden');
+            document.getElementById('context-panel').classList.remove('flex');
+        }
+
+        function closeDetailDesktop() {
+            // Hide Content
+            document.getElementById('context-content').classList.add('hidden');
+            document.getElementById('context-content').classList.remove('flex');
+            
+            // Show Placeholder
+            document.getElementById('context-placeholder').classList.remove('hidden');
+            document.getElementById('context-placeholder').classList.add('md:flex');
+            
+            // Deselect Row
+             document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
+        }
+
         // --- NAVIGATION ---
         function switchView(viewName) {
             const incidentsView = document.getElementById('view-incidents');
             const dashboardView = document.getElementById('view-dashboard');
-            const navItems = document.querySelectorAll('.nav-item');
             
-            // Reset Nav
-            navItems.forEach(item => {
-                const marker = item.querySelector('div[class*="bg-primary"]'); // The active line
-                if (marker && marker.classList.contains('absolute') && marker.classList.contains('w-1')) {
-                    // This is a hacky selector, in real app use proper IDs
-                }
+            // Update Active Markers
+            document.querySelectorAll('.marker').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item i').forEach(el => {
+                el.classList.remove('text-primary');
+                el.classList.add('text-muted');
             });
 
-            // Rough toggling logic
+            // Set Active
+            const navId = 'nav-' + viewName;
+            const navEl = document.getElementById(navId);
+            if(navEl) {
+                navEl.querySelector('.marker').classList.remove('hidden');
+                navEl.querySelector('i').classList.remove('text-muted');
+                navEl.querySelector('i').classList.add('text-primary');
+            }
+
+            // Toggle Views
             if(viewName === 'incidents') {
                 incidentsView.classList.remove('hidden');
                 incidentsView.classList.add('flex');
@@ -653,6 +817,9 @@
             const screen = document.getElementById('boot-screen');
             const log = document.getElementById('boot-log');
             
+            // Set Initial Active State
+            switchView('incidents');
+
             // Start Load
             setTimeout(() => bar.style.width = '100%', 100);
 
@@ -767,6 +934,8 @@
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         r: {
                             angleLines: { color: '#2a2f3a' },

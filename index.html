@@ -23,6 +23,7 @@
                         secondary: '#00ff41', // Green
                         alert: '#ff3333', // Red
                         warning: '#ffb000', // Amber
+                        info: '#94a3b8', // Slate/Gray for Info
                         muted: '#5a6b7c',
                         text: '#cfd7e6'
                     },
@@ -104,6 +105,14 @@
             @apply p-2 rounded hover:bg-white/5 text-muted hover:text-primary transition-colors cursor-pointer;
         }
 
+        /* Filter Styles */
+        .filter-btn {
+            @apply px-3 py-1 text-[10px] border border-border rounded text-muted hover:border-primary/50 hover:text-white transition-all uppercase font-mono bg-black/40;
+        }
+        .filter-btn.active {
+            @apply bg-primary text-black border-primary font-bold shadow-[0_0_10px_rgba(0,243,255,0.3)];
+        }
+
         /* TYPING ANIMATION CURSOR */
         .typing-cursor::after {
             content: '█';
@@ -117,6 +126,32 @@
         #network-canvas {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
             opacity: 0.3;
+        }
+
+        /* RESIZABLE TABLE */
+        .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            background: transparent;
+        }
+        .resizer:hover, .resizing {
+            background: #00f3ff;
+            opacity: 0.5;
+        }
+        .table-cell {
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding-left: 1rem;
+            padding-right: 0.5rem;
+            display: flex;
+            align-items: center;
         }
 
         /* BOOT SCREEN */
@@ -152,7 +187,7 @@
     </div>
 
     <!-- SIDEBAR NAV -->
-    <nav class="w-16 h-full bg-[#0b0d10] border-r border-border flex flex-col items-center py-6 z-50">
+    <nav class="w-16 h-full bg-[#0b0d10] border-r border-border flex flex-col items-center py-6 z-50 shrink-0">
         <div class="mb-8 text-primary text-2xl animate-pulse">
             <i class="fa-solid fa-shield-cat"></i>
         </div>
@@ -187,10 +222,10 @@
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col h-full relative z-10">
+    <main class="flex-1 flex flex-col h-full relative z-10 overflow-hidden">
         
         <!-- TOP HEADER -->
-        <header class="h-14 bg-panel/50 border-b border-border flex items-center justify-between px-6 backdrop-blur-md">
+        <header class="h-14 bg-panel/50 border-b border-border flex items-center justify-between px-6 backdrop-blur-md shrink-0">
             <div class="flex items-center gap-4">
                 <div class="text-sm font-display text-gray-400">
                     <span class="text-primary">JACSON_OTT</span> // DFIR_CONSULTANT
@@ -211,34 +246,44 @@
         <div id="view-incidents" class="flex-1 flex overflow-hidden relative">
             
             <!-- LEFT: ALERT QUEUE -->
-            <div id="panel-queue" class="w-full md:w-5/12 flex flex-col border-r border-border bg-black/20 z-10">
-                <!-- Toolbar -->
+            <div id="panel-queue" class="w-full md:w-6/12 flex flex-col border-r border-border bg-black/20 z-10">
+                <!-- Toolbar with Toggle -->
                 <div class="h-10 border-b border-border flex items-center px-4 justify-between bg-panel/30">
                     <div class="text-[10px] font-bold text-gray-400 tracking-wider">INCIDENT QUEUE</div>
                     <div class="flex gap-2">
                         <button onclick="refreshIncidents()" id="btn-refresh" class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 hover:bg-primary/20 transition flex items-center gap-1">
                             <i class="fa-solid fa-rotate"></i> REFRESH
                         </button>
-                        <button class="text-[10px] text-muted hover:text-white px-2 py-0.5"><i class="fa-solid fa-filter"></i> FILTER</button>
+                        <button onclick="toggleFilterMenu()" id="btn-filter-toggle" class="text-[10px] text-muted hover:text-white px-2 py-0.5 transition-colors border border-transparent rounded hover:border-border"><i class="fa-solid fa-filter"></i> FILTER: ALL</button>
                     </div>
                 </div>
+
+                <!-- Filter Menu (Drawer) -->
+                <div id="filter-menu" class="hidden border-b border-border bg-black/80 backdrop-blur px-4 py-3 flex flex-wrap gap-2 transition-all shadow-lg animate-fade-in-down z-20">
+                    <div class="w-full text-[10px] text-gray-500 mb-1 font-bold">SELECT FILTER CRITERIA:</div>
+                    <button onclick="applyFilter('all')" class="filter-btn active" data-filter="all">ALL_INCIDENTS</button>
+                    <button onclick="applyFilter('fulltime')" class="filter-btn" data-filter="fulltime">FULL_TIME</button>
+                    <button onclick="applyFilter('internship')" class="filter-btn" data-filter="internship">INTERNSHIP</button>
+                    <button onclick="applyFilter('extracurricular')" class="filter-btn" data-filter="extracurricular">EXTRA_CURRICULAR</button>
+                </div>
                 
-                <!-- Table Header -->
-                <div class="grid grid-cols-12 gap-2 px-4 py-2 text-[10px] text-muted font-bold border-b border-border bg-black/40">
-                    <div class="col-span-2">SEVERITY</div>
-                    <div class="col-span-3">TIMESTAMP</div>
-                    <div class="col-span-7">EVENT NAME</div>
+                <!-- Resizable Table Header -->
+                <div class="flex w-full px-0 py-2 text-[10px] text-muted font-bold border-b border-border bg-black/40 select-none">
+                    <div class="table-cell" style="width: 15%;" id="col-sev">SEV<div class="resizer"></div></div>
+                    <div class="table-cell" style="width: 25%;" id="col-ts">TIMESTAMP<div class="resizer"></div></div>
+                    <div class="table-cell" style="width: 35%;" id="col-role">ROLE / POSITION<div class="resizer"></div></div>
+                    <div class="table-cell" style="width: 25%;" id="col-ent">ENTITY</div>
                 </div>
 
-                <!-- Alert List -->
+                <!-- Alert List (Flex Table) -->
                 <div id="incident-list" class="flex-1 overflow-y-auto">
                     <!-- Javascript populates this -->
                 </div>
                 
                 <!-- Footer Status -->
-                <div class="h-8 border-t border-border flex items-center px-4 text-[10px] text-muted justify-between bg-panel/50">
+                <div class="h-8 border-t border-border flex items-center px-4 text-[10px] text-muted justify-between bg-panel/50 shrink-0">
                     <span id="incident-count">8 TOTAL INCIDENTS</span>
-                    <span><i class="fa-solid fa-check-circle text-secondary"></i> ALL SYSTEMS NORMAL</span>
+                    <span><i class="fa-solid fa-check-circle text-secondary"></i> DATA INTEGRITY: OK</span>
                 </div>
             </div>
 
@@ -256,18 +301,21 @@
                 <!-- Active Content -->
                 <div id="context-content" class="hidden flex-col h-full w-full">
                     <!-- Header -->
-                    <div class="h-16 border-b border-border flex items-center justify-between px-6 bg-panel/40">
-                        <div class="flex items-center gap-3">
+                    <div class="h-16 border-b border-border flex items-center justify-between px-6 bg-panel/40 shrink-0">
+                        <div class="flex items-center gap-3 overflow-hidden">
                             <!-- Mobile Back Button -->
                             <button class="md:hidden text-primary border border-border p-2 rounded hover:bg-white/10" onclick="closeDetailMobile()">
                                 <i class="fa-solid fa-arrow-left"></i>
                             </button>
-                            <div>
-                                <div class="text-xl font-display text-white truncate w-48 md:w-auto" id="detail-title">TITLE</div>
-                                <div class="text-xs text-primary font-mono truncate w-48 md:w-auto" id="detail-subtitle">SUBTITLE</div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="text-xl font-display text-white truncate" id="detail-title">TITLE</div>
+                                    <a href="#" id="detail-link" target="_blank" class="text-muted hover:text-primary text-xs transition-colors" title="Open Organization Link"><i class="fa-solid fa-external-link-alt"></i></a>
+                                </div>
+                                <div class="text-xs text-primary font-mono truncate" id="detail-subtitle">SUBTITLE</div>
                             </div>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 shrink-0">
                              <button class="hidden md:block px-3 py-1 bg-secondary/10 text-secondary text-xs border border-secondary/20 hover:bg-secondary/20 rounded">
                                 <i class="fa-solid fa-check mr-1"></i> MARK RESOLVED
                             </button>
@@ -434,7 +482,9 @@
                 role: "DFIR Consultant",
                 company: "Palo Alto Networks | Unit 42",
                 date: "Nov 2024 - Present",
+                type: "fulltime",
                 severity: "critical",
+                url: "https://www.paloaltonetworks.com/unit42",
                 tags: ["Ransomware", "BEC", "Threat Hunting", "Cortex XSIAM"],
                 details: [
                     "Lead investigations for Ransomware, Extortion, and Business Email Compromise engagements.",
@@ -447,7 +497,9 @@
                 role: "IT Consultant",
                 company: "Interior Concepts",
                 date: "May 2023 - Present",
+                type: "fulltime",
                 severity: "high",
+                url: "https://www.interiorconcepts.com",
                 tags: ["Unifi", "M365", "Defender", "Migration"],
                 details: [
                     "Deployed Unifi Access, Network, and Protect applications to production.",
@@ -461,7 +513,9 @@
                 role: "Associate DFIR Consultant",
                 company: "Palo Alto Networks | Unit 42",
                 date: "Aug 2023 - Nov 2024",
+                type: "fulltime",
                 severity: "medium",
+                url: "https://www.paloaltonetworks.com/unit42",
                 tags: ["Automation", "Python", "Triage", "Cortex XSIAM"],
                 details: [
                     "Specialized in automating functions leveraged in active engagements via Cortex XSIAM.",
@@ -474,7 +528,9 @@
                 role: "Incident Response Intern",
                 company: "Palo Alto Networks | Unit 42",
                 date: "May 2022 - Aug 2022",
+                type: "internship",
                 severity: "low",
+                url: "https://www.paloaltonetworks.com/unit42",
                 tags: ["Magnet AXIOM", "X-Ways", "Selenium", "CI/CD"],
                 details: [
                     "Performed responsibilities of an IR consultant on ransomware/extortion/BEC cases.",
@@ -488,7 +544,9 @@
                 role: "Digital Technology Intern",
                 company: "Oshkosh Corporation",
                 date: "May 2021 - Dec 2021",
+                type: "internship",
                 severity: "low",
+                url: "https://www.oshkoshcorp.com",
                 tags: ["Splunk", "Ansible", "Terraform", "vRealize"],
                 details: [
                     "Refreshed documentation for existing backup and recovery systems.",
@@ -501,7 +559,9 @@
                 role: "Governance & Compliance Intern",
                 company: "Fiat Chrysler (FCA)",
                 date: "Jun 2020 - Aug 2020",
+                type: "internship",
                 severity: "low",
+                url: "https://www.stellantis.com",
                 tags: ["GRC", "Policy", "CTPAT", "NAFTA"],
                 details: [
                     "Mapped CTPAT 2020 criteria to internal policies and streamlined border crossing process.",
@@ -514,7 +574,9 @@
                 role: "President | Networking Team Lead",
                 company: "Networking Student Assoc.",
                 date: "Sep 2020 - Present",
-                severity: "low",
+                type: "extracurricular",
+                severity: "info",
+                url: "https://www.mtu.edu",
                 tags: ["Leadership", "Networking", "Automation", "Teaching"],
                 details: [
                     "Led Network Auditing and Documentation initiatives.",
@@ -527,7 +589,9 @@
                 role: "Member | CTF Committee",
                 company: "RedTeam",
                 date: "Sep 2019 - Present",
-                severity: "low",
+                type: "extracurricular",
+                severity: "info",
+                url: "https://www.mtu.edu",
                 tags: ["CTF", "Security", "Challenge Creation"],
                 details: [
                     "Created Capture The Flag (CTF) challenges for competitions.",
@@ -539,7 +603,9 @@
                 role: "System Administrator",
                 company: "Homelab",
                 date: "Jan 2016 - Present",
-                severity: "low",
+                type: "extracurricular",
+                severity: "info",
+                url: "#",
                 tags: ["Self-Hosting", "AD", "Virtualization"],
                 details: [
                     "Managed Remote Access and Infrastructure Management.",
@@ -552,7 +618,9 @@
                 role: "IT Technician",
                 company: "Re-Source Industries",
                 date: "May 2019 - Aug 2019",
-                severity: "info",
+                type: "fulltime",
+                severity: "low",
+                url: "https://www.linkedin.com/company/re-source-industries-inc./",
                 tags: ["Puppet", "Linux", "Support"],
                 details: [
                     "Researched and deployed Puppet to manufacturing environment (30 production devices).",
@@ -565,7 +633,9 @@
                 role: "IT Technician",
                 company: "Michigan Tech Univ",
                 date: "Mar 2019 - Sep 2019",
-                severity: "info",
+                type: "fulltime",
+                severity: "low",
+                url: "https://www.mtu.edu",
                 tags: ["Imaging", "Deployment", "Support"],
                 details: [
                     "Performed general IT tasks: imaging systems, troubleshooting, deploying technology.",
@@ -575,13 +645,58 @@
         ];
 
         // --- UI LOGIC ---
+        let currentFilter = 'all';
+
+        function toggleFilterMenu() {
+            const menu = document.getElementById('filter-menu');
+            const btn = document.getElementById('btn-filter-toggle');
+            menu.classList.toggle('hidden');
+            
+            if (!menu.classList.contains('hidden')) {
+                btn.classList.add('text-primary');
+                btn.classList.remove('text-muted');
+                btn.classList.add('border-primary');
+            } else {
+                btn.classList.remove('text-primary');
+                btn.classList.add('text-muted');
+                btn.classList.remove('border-primary');
+            }
+        }
+
+        function applyFilter(filterType) {
+            currentFilter = filterType;
+            
+            // Highlight active buttons with High Contrast
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filterType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update Toggle Button Text
+            const toggleBtn = document.getElementById('btn-filter-toggle');
+            toggleBtn.innerHTML = `<i class="fa-solid fa-filter"></i> FILTER: ${filterType.toUpperCase().replace('_', ' ')}`;
+            if(filterType !== 'all') {
+                toggleBtn.classList.add('text-primary');
+                toggleBtn.classList.remove('text-muted');
+            }
+            
+            renderIncidents();
+        }
 
         function renderIncidents() {
             const list = document.getElementById('incident-list');
             list.innerHTML = '';
             
-            // Randomly reshuffle for "refresh" effect if needed, but for resume keep sorted
-            jobs.forEach((job, index) => {
+            // Filter
+            const filteredJobs = jobs.filter(job => {
+                if(currentFilter === 'all') return true;
+                return job.type === currentFilter;
+            });
+            
+            filteredJobs.forEach((job, index) => {
                 let sevColor = 'text-gray-500';
                 let sevIcon = 'fa-circle-info';
                 
@@ -589,23 +704,36 @@
                 else if(job.severity === 'high') { sevColor = 'text-warning'; sevIcon = 'fa-triangle-exclamation'; }
                 else if(job.severity === 'medium') { sevColor = 'text-secondary'; sevIcon = 'fa-circle-exclamation'; }
                 else if(job.severity === 'low') { sevColor = 'text-blue-400'; sevIcon = 'fa-circle-check'; }
+                else if(job.severity === 'info') { sevColor = 'text-info'; sevIcon = 'fa-circle-info'; }
 
                 const el = document.createElement('div');
-                el.className = `grid grid-cols-12 gap-2 px-4 py-3 border-b border-border row-hover transition-all text-xs`;
-                el.onclick = () => selectIncident(index, el);
+                el.className = `flex w-full px-0 py-3 border-b border-border row-hover transition-all text-xs`;
+                const originalIndex = jobs.findIndex(j => j.id === job.id);
+                el.onclick = () => selectIncident(originalIndex, el);
                 
+                // Keep column widths synced with header
+                const wSev = document.getElementById('col-sev').style.width;
+                const wTs = document.getElementById('col-ts').style.width;
+                const wRole = document.getElementById('col-role').style.width;
+                const wEnt = document.getElementById('col-ent').style.width;
+
                 el.innerHTML = `
-                    <div class="col-span-2 flex items-center gap-2 font-bold ${sevColor}">
-                        <i class="fa-solid ${sevIcon}"></i> ${job.severity.toUpperCase()}
+                    <div class="table-cell ${sevColor} font-bold" style="width: ${wSev}">
+                        <i class="fa-solid ${sevIcon} mr-2"></i> ${job.severity.toUpperCase()}
                     </div>
-                    <div class="col-span-3 text-muted font-mono truncate">${job.date}</div>
-                    <div class="col-span-7 font-display text-white truncate">
-                        <span class="text-gray-400">[${job.company}]</span> ${job.role}
+                    <div class="table-cell text-muted font-mono" style="width: ${wTs}">
+                        ${job.date}
+                    </div>
+                    <div class="table-cell text-white font-display" style="width: ${wRole}">
+                        ${job.role}
+                    </div>
+                    <div class="table-cell text-gray-400 truncate" style="width: ${wEnt}">
+                        ${job.company}
                     </div>
                 `;
                 list.appendChild(el);
             });
-            document.getElementById('incident-count').innerText = `${jobs.length} TOTAL INCIDENTS`;
+            document.getElementById('incident-count').innerText = `${filteredJobs.length} INCIDENTS`;
         }
 
         function refreshIncidents() {
@@ -615,7 +743,6 @@
             btn.innerHTML = `<i class="fa-solid fa-rotate animate-spin-fast"></i> REFRESHING...`;
             btn.classList.add('text-white');
             
-            // Clear list briefly
             const list = document.getElementById('incident-list');
             list.style.opacity = '0.5';
 
@@ -632,7 +759,6 @@
             const btn = document.getElementById('btn-copy');
             const originalHTML = btn.innerHTML;
             
-            // Use Clipboard API or execCommand fallback
             const textArea = document.createElement("textarea");
             textArea.value = jsonText;
             document.body.appendChild(textArea);
@@ -651,18 +777,15 @@
         }
 
         function selectIncident(index, element) {
-            // Highlight row
             document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
             element.classList.add('row-selected');
 
-            // Mobile: Hide List, Show Detail
             if(window.innerWidth < 768) {
                 document.getElementById('panel-queue').classList.add('hidden');
             }
             
-            // Show Panel
             document.getElementById('context-placeholder').classList.add('hidden');
-            document.getElementById('context-placeholder').classList.remove('flex'); // remove flex to hide completely
+            document.getElementById('context-placeholder').classList.remove('flex');
             document.getElementById('context-placeholder').classList.remove('md:flex');
             
             const content = document.getElementById('context-content');
@@ -673,16 +796,22 @@
             content.classList.remove('hidden');
             content.classList.add('flex');
 
-            // Populate Data
             const job = jobs[index];
             document.getElementById('detail-title').innerText = job.role;
             document.getElementById('detail-subtitle').innerText = `${job.company} // ${job.date}`;
             
-            // Tags
+            // Update Link
+            const linkEl = document.getElementById('detail-link');
+            if(job.url && job.url !== '#') {
+                linkEl.href = job.url;
+                linkEl.style.display = 'inline-block';
+            } else {
+                linkEl.style.display = 'none';
+            }
+            
             const tagsContainer = document.getElementById('detail-tags');
             tagsContainer.innerHTML = job.tags.map(t => `<span class="inline-block bg-border px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1 text-primary">${t}</span>`).join('');
 
-            // Bullets
             const bulletList = document.getElementById('detail-bullets');
             bulletList.innerHTML = '';
             job.details.forEach(detail => {
@@ -692,7 +821,6 @@
                 bulletList.appendChild(li);
             });
 
-            // JSON View
             document.getElementById('detail-json').innerText = JSON.stringify(job, null, 2);
         }
 
@@ -703,31 +831,25 @@
         }
 
         function closeDetailDesktop() {
-            // Hide Content
             document.getElementById('context-content').classList.add('hidden');
             document.getElementById('context-content').classList.remove('flex');
             
-            // Show Placeholder
             document.getElementById('context-placeholder').classList.remove('hidden');
             document.getElementById('context-placeholder').classList.add('md:flex');
             
-            // Deselect Row
              document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
         }
 
-        // --- NAVIGATION ---
         function switchView(viewName) {
             const incidentsView = document.getElementById('view-incidents');
             const dashboardView = document.getElementById('view-dashboard');
             
-            // Update Active Markers
             document.querySelectorAll('.marker').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item i').forEach(el => {
                 el.classList.remove('text-primary');
                 el.classList.add('text-muted');
             });
 
-            // Set Active
             const navId = 'nav-' + viewName;
             const navEl = document.getElementById(navId);
             if(navEl) {
@@ -736,7 +858,6 @@
                 navEl.querySelector('i').classList.add('text-primary');
             }
 
-            // Toggle Views
             if(viewName === 'incidents') {
                 incidentsView.classList.remove('hidden');
                 incidentsView.classList.add('flex');
@@ -745,11 +866,10 @@
                 incidentsView.classList.add('hidden');
                 incidentsView.classList.remove('flex');
                 dashboardView.classList.remove('hidden');
-                initChart(); // Render chart when visible
+                initChart();
             }
         }
 
-        // --- TERMINAL ---
         const termDrawer = document.getElementById('terminal-drawer');
         const termInput = document.getElementById('terminal-input');
         const termOutput = document.getElementById('terminal-output');
@@ -805,25 +925,58 @@
             }
         });
 
-        // --- CLOCK ---
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toISOString().replace('T', ' ').substring(0, 19) + ' Z';
         }, 1000);
 
-        // --- BOOT SEQUENCE ---
+        // --- RESIZABLE COLUMNS ---
+        let isResizing = false;
+        let currentResizer = null;
+        let startX = 0;
+        let startWidth = 0;
+
+        document.querySelectorAll('.resizer').forEach(resizer => {
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                currentResizer = resizer;
+                startX = e.pageX;
+                // Parent div width
+                startWidth = resizer.parentElement.offsetWidth;
+                resizer.classList.add('resizing');
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            const diff = e.pageX - startX;
+            const newWidth = startWidth + diff;
+            if (newWidth > 50) { // Min width
+                currentResizer.parentElement.style.width = newWidth + 'px';
+                // Trigger re-render to update rows widths
+                renderIncidents();
+            }
+        }
+
+        function handleMouseUp() {
+            isResizing = false;
+            if(currentResizer) currentResizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        }
+
         window.onload = () => {
             const bar = document.getElementById('boot-bar');
             const screen = document.getElementById('boot-screen');
             const log = document.getElementById('boot-log');
             
-            // Set Initial Active State
             switchView('incidents');
 
-            // Start Load
             setTimeout(() => bar.style.width = '100%', 100);
 
-            // Fake Logs
             const logs = [
                 "Mounting /dev/sda1...", "Loading modules: XSIAM, SPLUNK, PY...", 
                 "Decrypting credentials...", "Establishing Uplink...", "Starting UI Service..."
@@ -847,11 +1000,9 @@
             }, 300);
 
             renderIncidents();
-            // Init animation
             animateNetwork();
         };
 
-        // --- CANVAS ANIMATION (Background) ---
         function animateNetwork() {
             const canvas = document.getElementById('network-canvas');
             const ctx = canvas.getContext('2d');
@@ -864,7 +1015,6 @@
             window.addEventListener('resize', resize);
             resize();
 
-            // Create Nodes
             for(let i=0; i<40; i++) {
                 nodes.push({
                     x: Math.random() * canvas.width,
@@ -883,16 +1033,13 @@
                     node.x += node.vx;
                     node.y += node.vy;
 
-                    // Bounce
                     if(node.x < 0 || node.x > canvas.width) node.vx *= -1;
                     if(node.y < 0 || node.y > canvas.height) node.vy *= -1;
 
-                    // Draw Node
                     ctx.beginPath();
                     ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Connect
                     nodes.forEach((other, j) => {
                         if(i === j) return;
                         const dx = node.x - other.x;
@@ -915,7 +1062,6 @@
             draw();
         }
 
-        // --- CHARTS (Skills) ---
         let chartInstance = null;
         function initChart() {
             if(chartInstance) return;

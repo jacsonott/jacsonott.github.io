@@ -3,581 +3,783 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JACSON.TECH</title>
+    <title>JACSON.TECH // EDR CONSOLE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'soc-black': '#020408',
-                        'soc-dark': '#0a0f1c',
-                        'soc-panel': '#111827',
-                        'soc-border': '#1f2937',
-                        'neon-green': '#00ff41', 
-                        'neon-cyan': '#00f3ff',
-                        'neon-amber': '#ffb000',
-                        'neon-red': '#ff3333',
-                        'muted-text': '#6b7280'
+                        bg: '#050505',
+                        panel: '#0f1115',
+                        border: '#2a2f3a',
+                        primary: '#00f3ff', // Cyan
+                        secondary: '#00ff41', // Green
+                        alert: '#ff3333', // Red
+                        warning: '#ffb000', // Amber
+                        muted: '#5a6b7c',
+                        text: '#cfd7e6'
                     },
                     fontFamily: {
                         mono: ['"JetBrains Mono"', 'monospace'],
                         display: ['"Share Tech Mono"', 'monospace'],
                     },
-                    backgroundImage: {
-                        'grid-pattern': "linear-gradient(to right, #1f2937 1px, transparent 1px), linear-gradient(to bottom, #1f2937 1px, transparent 1px)",
-                    },
                     animation: {
-                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'scan': 'scan 4s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'scan': 'scan 8s linear infinite',
+                        'flash': 'flash 0.5s',
                     },
                     keyframes: {
                         scan: {
                             '0%': { transform: 'translateY(-100%)' },
                             '100%': { transform: 'translateY(100%)' }
+                        },
+                        flash: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.5' }
                         }
                     }
                 }
             }
         }
     </script>
+
     <style>
         body {
-            background-color: #020408;
-            color: #e2e8f0;
-            overflow-x: hidden;
+            background-color: #050505;
+            color: #cfd7e6;
+            overflow: hidden; /* App-like feel */
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* BACKGROUND GRID */
-        .bg-grid {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(31, 41, 55, 0.3) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(31, 41, 55, 0.3) 1px, transparent 1px);
-            z-index: -2;
-        }
+        /* CUSTOM SCROLLBAR */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f1115; }
+        ::-webkit-scrollbar-thumb { background: #2a2f3a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
 
         /* CRT EFFECTS */
         .scanline {
-            width: 100%;
-            height: 100%;
-            z-index: 50;
+            width: 100%; height: 100%; z-index: 9998;
             background: linear-gradient(0deg, rgba(0,0,0,0) 50%, rgba(0, 255, 65, 0.02) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
-            background-size: 100% 2px, 3px 100%;
-            position: fixed;
-            top: 0; left: 0;
-            pointer-events: none;
+            background-size: 100% 3px, 3px 100%;
+            position: fixed; top: 0; left: 0; pointer-events: none;
         }
-        
         .vignette {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            box-shadow: 0 0 150px rgba(0,0,0,0.9) inset;
-            z-index: 51; pointer-events: none;
+            box-shadow: 0 0 150px rgba(0,0,0,0.8) inset;
+            z-index: 9999; pointer-events: none;
         }
 
-        /* PANEL STYLING */
-        .soc-panel {
-            background: rgba(17, 24, 39, 0.8);
-            border: 1px solid #1f2937;
-            position: relative;
-            backdrop-filter: blur(8px);
-            transition: all 0.2s ease;
+        /* UTILS */
+        .glass-panel {
+            background: rgba(15, 17, 21, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid #2a2f3a;
         }
         
-        /* Tech Corners */
-        .soc-panel::before {
-            content: ''; position: absolute; top: -1px; left: -1px; width: 8px; height: 8px;
-            border-top: 2px solid #00f3ff; border-left: 2px solid #00f3ff; opacity: 0.6;
-        }
-        .soc-panel::after {
-            content: ''; position: absolute; bottom: -1px; right: -1px; width: 8px; height: 8px;
-            border-bottom: 2px solid #00f3ff; border-right: 2px solid #00f3ff; opacity: 0.6;
-        }
-
-        /* Hover Glow */
-        .soc-panel:hover {
-            border-color: rgba(0, 243, 255, 0.4);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
-        }
-        .soc-panel:hover::before, .soc-panel:hover::after { opacity: 1; box-shadow: 0 0 5px #00f3ff; }
-
-        /* BUTTONS */
-        .btn-filter {
-            background: transparent;
-            border: 1px solid #1f2937;
-            color: #6b7280;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.75rem;
+        .row-hover:hover {
+            background-color: rgba(0, 243, 255, 0.05);
             cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'Share Tech Mono', monospace;
-            text-transform: uppercase;
-        }
-        .btn-filter:hover { color: #00f3ff; border-color: #00f3ff; }
-        .btn-filter.active { background: rgba(0, 243, 255, 0.1); color: #00f3ff; border-color: #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
-
-        /* BADGES */
-        .tech-badge {
-            background: rgba(0, 255, 65, 0.05);
-            border: 1px solid rgba(0, 255, 65, 0.2);
-            color: #00ff41;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tech-badge:hover, .tech-badge.active {
-            background: rgba(0, 255, 65, 0.15);
-            box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
-            border-color: #00ff41;
+            border-left: 2px solid #00f3ff;
         }
 
-        /* SCROLLBAR */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #020408; }
-        ::-webkit-scrollbar-thumb { background: #1f2937; }
-        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+        .row-selected {
+            background-color: rgba(0, 243, 255, 0.1) !important;
+            border-left: 2px solid #00f3ff;
+        }
+
+        .btn-icon {
+            @apply p-2 rounded hover:bg-white/5 text-muted hover:text-primary transition-colors cursor-pointer;
+        }
+
+        /* TYPING ANIMATION CURSOR */
+        .typing-cursor::after {
+            content: '█';
+            animation: blink 1s step-end infinite;
+            color: #00f3ff;
+            margin-left: 4px;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* NETWORK GRAPH CANVAS */
+        #network-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            opacity: 0.3;
+        }
 
         /* BOOT SCREEN */
         #boot-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100; padding: 2rem;
-            color: #00ff41; font-family: 'Share Tech Mono', monospace;
-            display: flex; flex-direction: column; justify-content: flex-end;
+            background: #000; z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Share Tech Mono', monospace;
         }
     </style>
 </head>
-<body class="antialiased selection:bg-neon-cyan selection:text-black">
+<body class="flex h-screen w-screen selection:bg-primary selection:text-black">
 
     <!-- OVERLAYS -->
-    <div class="bg-grid"></div>
     <div class="scanline"></div>
     <div class="vignette"></div>
+    <canvas id="network-canvas"></canvas>
     
     <!-- BOOT SEQUENCE -->
     <div id="boot-screen">
-        <div id="boot-text" class="text-sm md:text-base leading-tight opacity-80"></div>
+        <div class="w-96">
+            <div class="text-primary text-xs mb-2 flex justify-between">
+                <span>BIOS_REV_4.0.2</span>
+                <span>SECURE_BOOT: ENABLED</span>
+            </div>
+            <div class="h-1 bg-gray-900 w-full rounded overflow-hidden">
+                <div id="boot-bar" class="h-full bg-primary w-0 transition-all duration-[2000ms] ease-out"></div>
+            </div>
+            <div id="boot-log" class="mt-4 text-[10px] text-gray-500 font-mono h-24 overflow-hidden">
+                > Initializing Kernel...
+            </div>
+        </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="app-container" class="relative z-10 max-w-[1600px] mx-auto p-4 md:p-6 min-h-screen flex flex-col">
+    <!-- SIDEBAR NAV -->
+    <nav class="w-16 h-full bg-[#0b0d10] border-r border-border flex flex-col items-center py-6 z-50">
+        <div class="mb-8 text-primary text-2xl animate-pulse">
+            <i class="fa-solid fa-shield-cat"></i>
+        </div>
         
-        <!-- HEADER ROW -->
-        <header class="flex flex-col md:flex-row justify-between items-end border-b border-soc-border pb-4 mb-6 gap-4">
+        <div class="flex flex-col gap-6 w-full">
+            <div class="nav-item active group relative w-full flex justify-center cursor-pointer" onclick="switchView('incidents')">
+                <i class="fa-solid fa-list-ul text-lg text-primary group-hover:text-white transition-colors"></i>
+                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
+                <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">INCIDENTS</div>
+            </div>
+
+            <div class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="switchView('dashboard')">
+                <i class="fa-solid fa-chart-line text-lg text-muted group-hover:text-white transition-colors"></i>
+                <div class="hidden active-marker absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
+                <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">DASHBOARD</div>
+            </div>
+
+            <div class="nav-item group relative w-full flex justify-center cursor-pointer" onclick="toggleTerminal()">
+                <i class="fa-solid fa-terminal text-lg text-muted group-hover:text-secondary transition-colors"></i>
+                <div class="absolute left-14 top-1/2 -translate-y-1/2 bg-panel border border-border px-2 py-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">TERMINAL (~)</div>
+            </div>
+        </div>
+
+        <div class="mt-auto flex flex-col gap-4">
+             <a href="https://linkedin.com/in/jacson-ott" target="_blank" class="text-muted hover:text-white transition-colors"><i class="fa-brands fa-linkedin"></i></a>
+             <a href="mailto:jdott@jacson.tech" class="text-muted hover:text-white transition-colors"><i class="fa-solid fa-envelope"></i></a>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-full relative z-10">
+        
+        <!-- TOP HEADER -->
+        <header class="h-14 bg-panel/50 border-b border-border flex items-center justify-between px-6 backdrop-blur-md">
             <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-soc-panel border border-neon-cyan flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.2)]">
-                    <i class="fa-solid fa-shield-cat text-3xl text-neon-cyan"></i>
+                <div class="text-sm font-display text-gray-400">
+                    <span class="text-primary">JACSON_OTT</span> // DFIR_CONSULTANT
                 </div>
-                <div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse-fast"></span>
-                        <span class="text-xs font-display text-neon-green tracking-widest">SYSTEM_ONLINE // DEFCON 4</span>
-                    </div>
-                    <h1 class="text-4xl font-bold text-white tracking-tighter font-display">JACSON_OTT</h1>
-                    <div class="text-sm text-neon-cyan font-mono tracking-wide">DFIR_CONSULTANT::UNIT42</div>
+                <div class="h-4 w-px bg-border"></div>
+                <div class="flex items-center gap-2 text-[10px] text-muted font-mono">
+                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                    SYSTEM_ONLINE
                 </div>
             </div>
 
-            <div class="flex flex-col items-end gap-2">
-                <div class="flex gap-2">
-                    <button onclick="toggleJsonMode()" id="json-toggle-btn" class="btn-filter flex items-center gap-2">
-                        <i class="fa-solid fa-code"></i> RAW_DATA
-                    </button>
-                    <div class="px-3 py-1 border border-soc-border text-xs text-neon-green font-display bg-soc-panel">
-                        <span id="utc-clock">00:00:00 UTC</span>
-                    </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center bg-black/30 border border-border rounded px-3 py-1.5 w-64">
+                    <i class="fa-solid fa-search text-muted text-xs mr-2"></i>
+                    <input type="text" placeholder="SEARCH LOGS..." class="bg-transparent border-none outline-none text-xs text-white w-full font-mono placeholder-gray-700">
                 </div>
-                <div class="text-[10px] text-muted-text font-mono">
-                    SECURE_UPLINK: <span class="text-neon-cyan">ESTABLISHED</span>
-                </div>
+                <div class="text-xs font-mono text-primary" id="clock">00:00:00 Z</div>
             </div>
         </header>
 
-        <!-- JSON VIEW (HIDDEN) -->
-        <div id="json-container" class="hidden soc-panel p-6 rounded mb-6 font-mono text-sm overflow-x-auto text-muted-text h-[70vh]">
-            <pre id="json-content"></pre>
-        </div>
-
-        <!-- DASHBOARD GRID -->
-        <div id="gui-dashboard" class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow items-start">
+        <!-- VIEW: INCIDENTS (Double Pane) -->
+        <div id="view-incidents" class="flex-1 flex overflow-hidden">
             
-            <!-- LEFT COL: INTEL & PROFILE (3 COLS) -->
-            <aside class="lg:col-span-3 flex flex-col gap-6">
+            <!-- LEFT: ALERT QUEUE -->
+            <div class="w-full md:w-1/2 lg:w-5/12 flex flex-col border-r border-border bg-black/20">
+                <!-- Toolbar -->
+                <div class="h-10 border-b border-border flex items-center px-4 justify-between bg-panel/30">
+                    <div class="text-[10px] font-bold text-gray-400 tracking-wider">INCIDENT QUEUE</div>
+                    <div class="flex gap-2">
+                        <button class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 hover:bg-primary/20 transition">REFRESH</button>
+                        <button class="text-[10px] text-muted hover:text-white px-2 py-0.5"><i class="fa-solid fa-filter"></i> FILTER</button>
+                    </div>
+                </div>
                 
-                <!-- Summary Module -->
-                <div class="soc-panel p-4">
-                    <div class="flex justify-between items-center mb-3 border-b border-soc-border pb-2">
-                        <span class="text-xs font-bold text-neon-cyan font-display">:: OPERATOR_PROFILE</span>
-                        <i class="fa-solid fa-user-circle text-muted-text"></i>
-                    </div>
-                    <p class="text-xs leading-relaxed text-gray-300 font-mono mb-4">
-                        Specialized in high-stakes <span class="text-white font-bold">Incident Response</span>, Ransomware remediation, and BEC investigations. 
-                        Expertise in leveraging <span class="text-neon-cyan">Cortex XSIAM/XDR</span> for automated threat hunting.
-                    </p>
-                    <div class="space-y-2">
-                        <a href="mailto:jdott@jacson.tech" class="flex items-center justify-between p-2 bg-soc-dark border border-soc-border hover:border-neon-cyan group transition-colors">
-                            <span class="text-[10px] text-muted-text">EMAIL_RELAY</span>
-                            <span class="text-xs text-white font-display group-hover:text-neon-cyan">jdott@jacson.tech</span>
-                        </a>
-                        <a href="https://linkedin.com/in/jacson-ott" target="_blank" class="flex items-center justify-between p-2 bg-soc-dark border border-soc-border hover:border-neon-cyan group transition-colors">
-                            <span class="text-[10px] text-muted-text">LINKEDIN_NET</span>
-                            <span class="text-xs text-white font-display group-hover:text-neon-cyan">/in/jacson-ott</span>
-                        </a>
-                    </div>
+                <!-- Table Header -->
+                <div class="grid grid-cols-12 gap-2 px-4 py-2 text-[10px] text-muted font-bold border-b border-border bg-black/40">
+                    <div class="col-span-2">SEVERITY</div>
+                    <div class="col-span-3">TIMESTAMP</div>
+                    <div class="col-span-7">EVENT NAME</div>
                 </div>
 
-                <!-- Labs/Education (Moved to Left) -->
-                <div class="soc-panel p-4">
-                    <div class="flex justify-between items-center mb-3 border-b border-soc-border pb-2">
-                        <span class="text-xs font-bold text-neon-cyan font-display">:: ACADEMIC_&_OPS</span>
-                    </div>
-                    <div class="space-y-3 text-[11px] font-mono">
-                         <div>
-                            <div class="text-white font-bold">MS Cybersecurity</div>
-                            <div class="text-muted-text">Michigan Tech Univ | 2023</div>
-                        </div>
-                        <div class="border-t border-soc-border pt-2">
-                            <div class="text-gray-300 font-bold">RedTeam CTF Committee</div>
-                            <div class="text-muted-text">Challenge Creator</div>
-                        </div>
-                        <div class="border-t border-soc-border pt-2">
-                            <div class="text-gray-300 font-bold">Networking Student Assoc.</div>
-                            <div class="text-muted-text">President / Team Lead</div>
-                        </div>
-                         <div class="border-t border-soc-border pt-2">
-                            <div class="text-gray-300 font-bold">HomeLab (2016-Present)</div>
-                            <div class="text-muted-text">Active Directory, Remote Access</div>
-                        </div>
-                    </div>
+                <!-- Alert List -->
+                <div id="incident-list" class="flex-1 overflow-y-auto">
+                    <!-- Javascript populates this -->
                 </div>
-
-            </aside>
-
-            <!-- MIDDLE COL: EXPERIENCE FEED (6 COLS) -->
-            <section class="lg:col-span-6 flex flex-col gap-6">
                 
-                <!-- Feed Controls -->
-                <div class="flex flex-wrap items-center justify-between gap-4 bg-soc-panel p-3 border border-soc-border">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-layer-group text-neon-cyan text-xs"></i>
-                        <span class="text-xs font-bold text-white font-display">CASE_HISTORY</span>
-                    </div>
-                    <div class="flex gap-2" id="filter-controls">
-                        <button class="btn-filter active" data-filter="all">ALL</button>
-                        <button class="btn-filter" data-filter="dfir">DFIR_OPS</button>
-                        <button class="btn-filter" data-filter="eng">ENGINEERING</button>
-                        <button class="btn-filter" data-filter="intel">INTEL/INTERN</button>
-                    </div>
+                <!-- Footer Status -->
+                <div class="h-8 border-t border-border flex items-center px-4 text-[10px] text-muted justify-between bg-panel/50">
+                    <span>8 TOTAL INCIDENTS</span>
+                    <span><i class="fa-solid fa-check-circle text-secondary"></i> ALL SYSTEMS NORMAL</span>
                 </div>
+            </div>
 
-                <!-- Experience List -->
-                <div class="space-y-4 overflow-y-auto pr-2 max-h-[800px] scrollbar-thin">
-                    
-                    <!-- Job: Unit 42 (Current) -->
-                    <div class="soc-panel p-5 job-panel" data-category="dfir" data-tags="cortex,xdr,xsiam,ransomware,forensics">
-                        <div class="absolute top-0 right-0 px-2 py-0.5 bg-neon-cyan/10 text-neon-cyan text-[10px] font-display border-l border-b border-neon-cyan/30">ACTIVE_ENGAGEMENT</div>
-                        <div class="mb-3">
-                            <h3 class="text-lg font-bold text-white font-display">DFIR Consultant</h3>
-                            <div class="flex justify-between items-center mt-1">
-                                <span class="text-xs text-neon-cyan tracking-wider">PALO ALTO NETWORKS | UNIT 42</span>
-                                <span class="text-xs text-muted-text font-mono">NOV 2024 - PRESENT</span>
-                            </div>
-                        </div>
-                        <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside marker:text-neon-cyan">
-                            <li>Tech Lead for Ransomware, Extortion, & BEC engagements.</li>
-                            <li>Execution of Cyber Threat Hunting (CTH) using <strong>Cortex XSIAM</strong>.</li>
-                            <li>Client interface for remediation guidance and scoping.</li>
-							<li>AI App and Agent development leveraging Google Gemini.</li>
-                        </ul>
-                    </div>
-
-                    <!-- Job: Interior Concepts -->
-                    <div class="soc-panel p-5 job-panel" data-category="eng" data-tags="networking,infrastructure,microsoft 365,defender,unifi">
-                        <div class="mb-3">
-                            <h3 class="text-lg font-bold text-white font-display">IT Consultant</h3>
-                            <div class="flex justify-between items-center mt-1">
-                                <span class="text-xs text-neon-green tracking-wider">INTERIOR CONCEPTS</span>
-                                <span class="text-xs text-muted-text font-mono">MAY 2023 - PRESENT</span>
-                            </div>
-                        </div>
-                        <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside marker:text-neon-green">
-							<li>Ongoing IT and security consulting at a technical and executive level.</li>
-                            <li>Deployed full stack <strong>Unifi Access/Network/Protect</strong>.</li>
-                            <li>Migrated On-Prem Exchange & Legacy Phone to M365.</li>
-                            <li>Configured and Deployed Microsoft Defender for Business.</li>
-							<li>Mangement of Hardened Veeam backups.</li>
-                        </ul>
-                    </div>
-
-                    <!-- Job: Unit 42 (Assoc) -->
-                    <div class="soc-panel p-5 job-panel" data-category="dfir" data-tags="cortex,xdr,xsiam,automation,python">
-                        <div class="mb-3">
-                            <h3 class="text-base font-bold text-gray-200 font-display">Associate DFIR Consultant</h3>
-                            <div class="flex justify-between items-center mt-1">
-                                <span class="text-xs text-muted-text tracking-wider">PALO ALTO NETWORKS | UNIT 42</span>
-                                <span class="text-xs text-muted-text font-mono">AUG 2023 - NOV 2024</span>
-                            </div>
-                        </div>
-                        <ul class="text-xs text-gray-400 space-y-2 list-disc list-inside marker:text-gray-500">
-                            <li>Engineered automation workflows within Cortex XSIAM.</li>
-                            <li>Accelerated triage response times during active incidents.</li>
-                        </ul>
-                    </div>
-
-                    <!-- Job: Unit 42 (Intern) -->
-                    <div class="soc-panel p-5 job-panel opacity-90" data-category="intel" data-tags="magnet axiom,x-ways,python,gitlab">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-base font-bold text-gray-300 font-display">Incident Response Intern</h3>
-                                <div class="text-xs text-muted-text">PALO ALTO NETWORKS | UNIT 42</div>
-                            </div>
-                            <span class="text-[10px] text-muted-text">SUMMER 2022</span>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-400">
-                            Forensics with Magnet AXIOM/X-Ways. Developed Python automation libs & Selenium CI/CD testing.
-                        </p>
-                    </div>
-
-                    <!-- Job: Oshkosh -->
-                    <div class="soc-panel p-5 job-panel opacity-80" data-category="eng" data-tags="splunk,ansible,terraform">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-sm font-bold text-gray-300 font-display">Digital Tech Intern</h3>
-                                <div class="text-xs text-muted-text">OSHKOSH CORPORATION</div>
-                            </div>
-                            <span class="text-[10px] text-muted-text">2021</span>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-500">
-                            Converted reporting to Splunk dashboards. Automation POCs with Ansible/Terraform.
-                        </p>
-                    </div>
-
-                    <!-- Job: FCA -->
-                    <div class="soc-panel p-5 job-panel opacity-80" data-category="intel" data-tags="governance,policy">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-sm font-bold text-gray-300 font-display">Governance Intern</h3>
-                                <div class="text-xs text-muted-text">FIAT CHRYSLER (FCA)</div>
-                            </div>
-                            <span class="text-[10px] text-muted-text">2020</span>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-500">
-                            Reviewed 45% of NAFTA cyber policies. Mapped CTPAT criteria.
-                        </p>
-                    </div>
-
-                     <!-- Job: Re-Source -->
-                     <div class="soc-panel p-5 job-panel opacity-80" data-category="eng" data-tags="linux,puppet">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-sm font-bold text-gray-300 font-display">IT Technician</h3>
-                                <div class="text-xs text-muted-text">RE-SOURCE INDUSTRIES</div>
-                            </div>
-                            <span class="text-[10px] text-muted-text">2019</span>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-500">
-                            Deployed Puppet to production. Configured Linux repos.
-                        </p>
-                    </div>
-
-                     <!-- Job: MTU Tier 0 -->
-                     <div class="soc-panel p-5 job-panel opacity-70" data-category="eng" data-tags="support">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-sm font-bold text-gray-400 font-display">Tier 0 IT Technician</h3>
-                                <div class="text-xs text-muted-text">MICHIGAN TECH UNIV</div>
-                            </div>
-                            <span class="text-[10px] text-muted-text">2019</span>
-                        </div>
-                        <p class="mt-2 text-xs text-gray-500">
-                            Workstation deployment, imaging, and troubleshooting.
-                        </p>
-                    </div>
-
-                </div>
-            </section>
-
-            <!-- RIGHT COL: ARSENAL (3 COLS) -->
-            <aside class="lg:col-span-3 flex flex-col gap-6">
+            <!-- RIGHT: CONTEXT PANEL -->
+            <div id="context-panel" class="hidden md:flex flex-1 flex-col bg-panel/20 relative">
                 
-                <!-- Skills Matrix -->
-                <div class="soc-panel p-4">
-                    <div class="flex justify-between items-center mb-3 border-b border-soc-border pb-2">
-                        <span class="text-xs font-bold text-neon-amber font-display">:: TOOL_ARSENAL</span>
-                        <i class="fa-solid fa-toolbox text-muted-text"></i>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <div class="text-[10px] text-muted-text mb-1 tracking-wider">>> FORENSICS_SUITE</div>
-                            <div class="flex flex-wrap gap-1">
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="cortex,xdr,xsiam">Cortex XSIAM</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="magnet axiom">Magnet AXIOM</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="x-ways">X-Ways</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="splunk">Splunk</span>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-muted-text mb-1 tracking-wider">>> AUTOMATION_OPS</div>
-                            <div class="flex flex-wrap gap-1">
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="python">Python</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="ansible">Ansible</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="terraform">Terraform</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="gitlab">GitLab</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="puppet">Puppet</span>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-muted-text mb-1 tracking-wider">>> INFRASTRUCTURE</div>
-                            <div class="flex flex-wrap gap-1">
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="linux">Linux</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="microsoft 365,defender">M365/Defender</span>
-                                <span class="tech-badge px-2 py-0.5 rounded text-[10px] font-mono" data-target="unifi">Unifi</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Placeholder State -->
+                <div id="context-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-muted opacity-50">
+                    <i class="fa-solid fa-radar text-4xl mb-4 animate-pulse-slow"></i>
+                    <div class="text-xs font-mono">SELECT AN INCIDENT TO INVESTIGATE</div>
                 </div>
 
-                <!-- Certs -->
-                <div class="soc-panel p-4">
-                    <div class="flex justify-between items-center mb-3 border-b border-soc-border pb-2">
-                        <span class="text-xs font-bold text-neon-green font-display">:: CREDENTIALS</span>
-                        <i class="fa-solid fa-certificate text-muted-text"></i>
+                <!-- Active Content -->
+                <div id="context-content" class="hidden flex-col h-full">
+                    <!-- Header -->
+                    <div class="h-16 border-b border-border flex items-center justify-between px-6 bg-panel/40">
+                        <div>
+                            <div class="text-xl font-display text-white" id="detail-title">TITLE</div>
+                            <div class="text-xs text-primary font-mono" id="detail-subtitle">SUBTITLE</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 bg-secondary/10 text-secondary text-xs border border-secondary/20 hover:bg-secondary/20 rounded">
+                                <i class="fa-solid fa-check mr-1"></i> MARK RESOLVED
+                            </button>
+                            <button class="p-1.5 text-muted hover:text-white"><i class="fa-solid fa-share-nodes"></i></button>
+                        </div>
                     </div>
-                    <ul class="space-y-3">
-                        <li class="border-l-2 border-neon-green pl-2">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="text-white font-bold">GIAC GCFA</span>
-                                <a href="https://www.giac.org/certified-professional/Jacson-Ott/249950" target="_blank" class="text-[9px] text-neon-green hover:underline">VERIFY</a>
-                            </div>
-                            <div class="text-[10px] text-muted-text">Cert Forensic Analyst</div>
-                        </li>
-                        <li class="pl-2 border-l-2 border-soc-border hover:border-neon-cyan transition-colors">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="text-gray-300">CompTIA Sec+</span>
-                                <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/S8DL65NM63Q11NC8" target="_blank" class="text-[9px] text-muted-text hover:text-neon-cyan">VERIFY</a>
-                            </div>
-                        </li>
-                        <li class="pl-2 border-l-2 border-soc-border hover:border-neon-cyan transition-colors">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="text-gray-300">CompTIA Net+</span>
-                                <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/WFOHELP36GE41595" target="_blank" class="text-[9px] text-muted-text hover:text-neon-cyan">VERIFY</a>
-                            </div>
-                        </li>
-                        <li class="pl-2 border-l-2 border-soc-border hover:border-neon-cyan transition-colors">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="text-gray-300">CompTIA A+</span>
-                                <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/825V169FNPRE1KKR" target="_blank" class="text-[9px] text-muted-text hover:text-neon-cyan">VERIFY</a>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
 
-            </aside>
+                    <!-- Scrollable Body -->
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                        
+                        <!-- Analysis Widget -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="glass-panel p-3 rounded">
+                                <div class="text-[10px] text-muted mb-1">AUTOMATED ANALYSIS</div>
+                                <div class="text-sm text-secondary font-mono flex items-center gap-2">
+                                    <i class="fa-solid fa-shield-check"></i> CONFIRMED BENIGN
+                                </div>
+                            </div>
+                            <div class="glass-panel p-3 rounded">
+                                <div class="text-[10px] text-muted mb-1">RELATED ARTIFACTS</div>
+                                <div class="text-sm text-white font-mono" id="detail-tags">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Main Details -->
+                        <div class="glass-panel p-5 rounded border-l-2 border-l-primary">
+                            <div class="text-xs font-bold text-primary mb-3 font-display">:: FORENSIC TIMELINE</div>
+                            <ul id="detail-bullets" class="space-y-3 text-sm text-gray-300 list-none font-mono">
+                                <!-- Bullets go here -->
+                            </ul>
+                        </div>
+                        
+                        <!-- JSON Data -->
+                         <div class="glass-panel p-0 rounded overflow-hidden">
+                            <div class="bg-black/40 px-3 py-1 text-[10px] text-muted border-b border-border flex justify-between">
+                                <span>RAW_DATA.JSON</span>
+                                <span class="cursor-pointer hover:text-white">COPY</span>
+                            </div>
+                            <pre id="detail-json" class="p-3 text-[10px] text-green-500 overflow-x-auto font-mono bg-black/20"></pre>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- VIEW: DASHBOARD (Hidden initially) -->
+        <div id="view-dashboard" class="hidden flex-1 overflow-y-auto p-6">
+            <h2 class="text-2xl text-white font-display mb-6">SECURITY OVERVIEW</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- Stat Card 1 -->
+                <div class="glass-panel p-4 rounded relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition">
+                        <i class="fa-solid fa-bug text-5xl text-alert"></i>
+                    </div>
+                    <div class="text-xs text-muted font-bold">ACTIVE INCIDENTS</div>
+                    <div class="text-3xl text-white font-display mt-2">2</div>
+                    <div class="text-[10px] text-alert mt-1 font-mono">UNIT 42 & INTERIOR CONCEPTS</div>
+                </div>
+                <!-- Stat Card 2 -->
+                <div class="glass-panel p-4 rounded">
+                    <div class="text-xs text-muted font-bold">CREDENTIALS LOADED</div>
+                    <div class="text-3xl text-white font-display mt-2">4</div>
+                    <div class="text-[10px] text-secondary mt-1 font-mono">GCFA, SEC+, NET+, A+</div>
+                </div>
+                <!-- Stat Card 3 -->
+                <div class="glass-panel p-4 rounded">
+                    <div class="text-xs text-muted font-bold">EXPERIENCE</div>
+                    <div class="text-3xl text-white font-display mt-2">6+ YRS</div>
+                    <div class="text-[10px] text-primary mt-1 font-mono">SINCE 2019</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Skills Heatmap -->
+                <div class="glass-panel p-4 rounded h-96 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs text-primary font-bold">:: ARSENAL_COVERAGE</span>
+                    </div>
+                    <div class="flex-1 relative">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Education / Bio -->
+                <div class="glass-panel p-6 rounded flex flex-col gap-4">
+                    <div class="text-xs text-primary font-bold mb-2">:: OPERATOR_BIO</div>
+                    <div class="flex gap-4 items-start">
+                        <div class="w-16 h-16 bg-panel border border-primary flex items-center justify-center text-2xl text-primary shrink-0">
+                            <i class="fa-solid fa-user-astronaut"></i>
+                        </div>
+                        <div class="text-sm text-gray-300 leading-relaxed">
+                            <p class="mb-2">DFIR Consultant specializing in <strong class="text-white">Ransomware, Extortion, and BEC</strong> investigations.</p>
+                            <p>Proven expertise in <strong class="text-primary">Cortex XSIAM/XDR</strong> threat hunting, automated triage, and forensic analysis (Magnet Axiom, X-Ways).</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 border-t border-border pt-4 space-y-3">
+                         <div class="text-xs text-warning font-bold mb-2">:: EDUCATION</div>
+                         <div>
+                             <div class="text-sm text-white">MS Cybersecurity</div>
+                             <div class="text-xs text-muted">Michigan Tech Univ | 2022 - 2023</div>
+                         </div>
+                         <div>
+                             <div class="text-sm text-white">BS Cybersecurity</div>
+                             <div class="text-xs text-muted">Michigan Tech Univ | 2018 - 2022</div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- TERMINAL DRAWER -->
+    <div id="terminal-drawer" class="fixed bottom-0 left-0 w-full h-1/3 bg-[#050505] border-t border-primary z-[100] transform translate-y-full transition-transform duration-300 shadow-[0_0_20px_rgba(0,243,255,0.1)] flex flex-col font-mono text-sm">
+        <div class="h-8 bg-primary/20 flex items-center justify-between px-4 border-b border-primary/30">
+            <span class="text-primary text-xs">TERMINAL // bash</span>
+            <button onclick="toggleTerminal()" class="text-primary hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="terminal-output" class="flex-1 overflow-y-auto p-4 space-y-1 text-gray-300">
+            <div class="text-muted">Welcome to JO-OS v2.0. Type 'help' for commands.</div>
+        </div>
+        <div class="h-10 bg-black flex items-center px-4">
+            <span class="text-secondary mr-2">guest@jacson:~$</span>
+            <input id="terminal-input" type="text" class="bg-transparent border-none outline-none text-white w-full" autocomplete="off">
+        </div>
     </div>
 
     <script>
-        // --- DATASET ---
-        const resumeData = {
-            "identity": { "name": "Jacson Ott", "role": "DFIR Consultant", "clearance": "Unit 42", "location": "Reston, VA / Remote" },
-            "experience": [
-                { "role": "DFIR Consultant", "org": "Unit 42", "dates": "Nov 2024-Present", "tags": ["Ransomware", "Cortex XSIAM", "Threat Hunting"] },
-                { "role": "IT Consultant", "org": "Interior Concepts", "dates": "May 2023-Present", "tags": ["Unifi", "M365", "Defender"] },
-                { "role": "Associate DFIR", "org": "Unit 42", "dates": "Aug 2023-Nov 2024", "tags": ["Automation", "Triage"] },
-                { "role": "IR Intern", "org": "Unit 42", "dates": "Summer 2022", "tags": ["Magnet AXIOM", "Python", "CI/CD"] },
-                { "role": "Digital Tech Intern", "org": "Oshkosh Corp", "dates": "2021", "tags": ["Splunk", "Terraform"] },
-                { "role": "Governance Intern", "org": "FCA", "dates": "2020", "tags": ["Policy", "Compliance"] },
-                { "role": "IT Technician", "org": "Re-Source Ind", "dates": "2019", "tags": ["Puppet", "Linux"] },
-                { "role": "IT Technician", "org": "Michigan Tech", "dates": "2019", "tags": ["Support"] }
-            ],
-            "education": { "ms": "Cybersecurity (MTU)", "bs": "Cybersecurity (MTU)" },
-            "certs": ["GCFA", "Sec+", "Net+", "A+"]
-        };
-
-        // --- BOOT SEQUENCE ---
-        const bootScreen = document.getElementById('boot-screen');
-        const bootText = document.getElementById('boot-text');
-        const bootLines = [
-            "Initializing kernel...", "Loading modules...", "Mounting volume: /dev/sda1...", 
-            "Checking forensic integrity... OK", "Decrypting user profile: J.OTT...", "Connecting to uplink...", "ACCESS GRANTED."
+        // --- DATA ---
+        const jobs = [
+            {
+                id: "INC-2024-001",
+                role: "DFIR Consultant",
+                company: "Palo Alto Networks | Unit 42",
+                date: "Nov 2024 - Present",
+                severity: "critical",
+                tags: ["Ransomware", "BEC", "Threat Hunting", "Cortex XSIAM"],
+                details: [
+                    "Lead investigations for Ransomware, Extortion, and Business Email Compromise engagements.",
+                    "Execute Cyber Threat Hunting (CTH) leveraging Cortex XSIAM.",
+                    "Provide direct client interface for remediation guidance and engagement scoping."
+                ]
+            },
+            {
+                id: "INC-2023-042",
+                role: "IT Consultant",
+                company: "Interior Concepts",
+                date: "May 2023 - Present",
+                severity: "high",
+                tags: ["Unifi", "M365", "Defender", "Migration"],
+                details: [
+                    "Deployed Unifi Access, Network, and Protect applications to production.",
+                    "Executed migration from Exchange On-Premise to Exchange Online.",
+                    "Transitioned business from legacy phone systems to Teams Voice.",
+                    "Migrated endpoint security solution to Microsoft Defender for Business."
+                ]
+            },
+            {
+                id: "INC-2023-011",
+                role: "Associate DFIR Consultant",
+                company: "Palo Alto Networks | Unit 42",
+                date: "Aug 2023 - Nov 2024",
+                severity: "medium",
+                tags: ["Automation", "Python", "Triage", "Cortex XSIAM"],
+                details: [
+                    "Specialized in automating functions leveraged in active engagements via Cortex XSIAM.",
+                    "Interfaced directly with clients to provide updates and resolve technical issues.",
+                    "Focused on ransomware, extortion, insider threat, and BEC engagements."
+                ]
+            },
+            {
+                id: "INC-2022-005",
+                role: "Incident Response Intern",
+                company: "Palo Alto Networks | Unit 42",
+                date: "May 2022 - Aug 2022",
+                severity: "low",
+                tags: ["Magnet AXIOM", "X-Ways", "Selenium", "CI/CD"],
+                details: [
+                    "Performed responsibilities of an IR consultant on ransomware/extortion/BEC cases.",
+                    "utilized Axiom, X-Ways, Eric Zimmerman's tools, and Cortex XDR for artifact identification.",
+                    "Leveraged Selenium to create GitLab CI/CD E2E testing for in-house case management.",
+                    "Collaborated on a custom Python library for programmatic access to case management platforms."
+                ]
+            },
+            {
+                id: "INC-2021-099",
+                role: "Digital Technology Intern",
+                company: "Oshkosh Corporation",
+                date: "May 2021 - Dec 2021",
+                severity: "low",
+                tags: ["Splunk", "Ansible", "Terraform", "vRealize"],
+                details: [
+                    "Refreshed documentation for existing backup and recovery systems.",
+                    "Converted email-based reporting to Splunk graphical dashboards for visibility.",
+                    "Collaborated on automation POCs using Ansible, Terraform, and vRealize Automation."
+                ]
+            },
+            {
+                id: "INC-2020-055",
+                role: "Governance & Compliance Intern",
+                company: "Fiat Chrysler (FCA)",
+                date: "Jun 2020 - Aug 2020",
+                severity: "info",
+                tags: ["GRC", "Policy", "CTPAT", "NAFTA"],
+                details: [
+                    "Mapped CTPAT 2020 criteria to internal policies and streamlined border crossing process.",
+                    "Reviewed and revised 45% of NAFTA FCA cybersecurity policies (applying to 80k users).",
+                    "Identified friction points in external app security approval workflows."
+                ]
+            },
+            {
+                id: "INC-2019-012",
+                role: "IT Technician",
+                company: "Re-Source Industries",
+                date: "May 2019 - Aug 2019",
+                severity: "info",
+                tags: ["Puppet", "Linux", "Support"],
+                details: [
+                    "Researched and deployed Puppet to manufacturing environment (30 production devices).",
+                    "Configured local Linux repository to reduce network bandwidth usage.",
+                    "Wrote over 100 support articles for production management SaaS offering."
+                ]
+            },
+            {
+                id: "INC-2019-001",
+                role: "IT Technician",
+                company: "Michigan Tech Univ",
+                date: "Mar 2019 - Sep 2019",
+                severity: "info",
+                tags: ["Imaging", "Deployment", "Support"],
+                details: [
+                    "Performed general IT tasks: imaging systems, troubleshooting, deploying technology.",
+                    "Worked directly with customers to resolve workstation issues."
+                ]
+            }
         ];
-        let lineIdx = 0;
-        function boot() {
-            if(lineIdx < bootLines.length){
-                const div = document.createElement('div');
-                div.innerHTML = `<span class="text-neon-green">[OK]</span> ${bootLines[lineIdx]}`;
-                bootText.appendChild(div);
-                lineIdx++;
-                setTimeout(boot, 200);
+
+        // --- UI LOGIC ---
+
+        function renderIncidents() {
+            const list = document.getElementById('incident-list');
+            list.innerHTML = '';
+
+            jobs.forEach((job, index) => {
+                let sevColor = 'text-gray-500';
+                let sevIcon = 'fa-circle-info';
+                
+                if(job.severity === 'critical') { sevColor = 'text-alert'; sevIcon = 'fa-radiation'; }
+                else if(job.severity === 'high') { sevColor = 'text-warning'; sevIcon = 'fa-triangle-exclamation'; }
+                else if(job.severity === 'medium') { sevColor = 'text-secondary'; sevIcon = 'fa-circle-exclamation'; }
+
+                const el = document.createElement('div');
+                el.className = `grid grid-cols-12 gap-2 px-4 py-3 border-b border-border row-hover transition-all text-xs`;
+                el.onclick = () => selectIncident(index, el);
+                
+                el.innerHTML = `
+                    <div class="col-span-2 flex items-center gap-2 font-bold ${sevColor}">
+                        <i class="fa-solid ${sevIcon}"></i> ${job.severity.toUpperCase()}
+                    </div>
+                    <div class="col-span-3 text-muted font-mono truncate">${job.date}</div>
+                    <div class="col-span-7 font-display text-white truncate">
+                        <span class="text-gray-400">[${job.company}]</span> ${job.role}
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        function selectIncident(index, element) {
+            // Highlight row
+            document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
+            element.classList.add('row-selected');
+
+            // Show Panel
+            document.getElementById('context-placeholder').classList.add('hidden');
+            const content = document.getElementById('context-content');
+            content.classList.remove('hidden');
+            content.classList.add('flex');
+
+            // Populate Data
+            const job = jobs[index];
+            document.getElementById('detail-title').innerText = job.role;
+            document.getElementById('detail-subtitle').innerText = `${job.company} // ${job.date}`;
+            
+            // Tags
+            const tagsContainer = document.getElementById('detail-tags');
+            tagsContainer.innerHTML = job.tags.map(t => `<span class="inline-block bg-border px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1 text-primary">${t}</span>`).join('');
+
+            // Bullets
+            const bulletList = document.getElementById('detail-bullets');
+            bulletList.innerHTML = '';
+            job.details.forEach(detail => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2";
+                li.innerHTML = `<i class="fa-solid fa-angle-right text-primary mt-1 text-[10px]"></i> <span>${detail}</span>`;
+                bulletList.appendChild(li);
+            });
+
+            // JSON View
+            document.getElementById('detail-json').innerText = JSON.stringify(job, null, 2);
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            const incidentsView = document.getElementById('view-incidents');
+            const dashboardView = document.getElementById('view-dashboard');
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            // Reset Nav
+            navItems.forEach(item => {
+                const marker = item.querySelector('div[class*="bg-primary"]'); // The active line
+                if (marker && marker.classList.contains('absolute') && marker.classList.contains('w-1')) {
+                    // This is a hacky selector, in real app use proper IDs
+                }
+            });
+
+            // Rough toggling logic
+            if(viewName === 'incidents') {
+                incidentsView.classList.remove('hidden');
+                incidentsView.classList.add('flex');
+                dashboardView.classList.add('hidden');
             } else {
-                setTimeout(() => { bootScreen.style.opacity='0'; setTimeout(()=>{bootScreen.style.display='none'},500); }, 800);
+                incidentsView.classList.add('hidden');
+                incidentsView.classList.remove('flex');
+                dashboardView.classList.remove('hidden');
+                initChart(); // Render chart when visible
             }
         }
-        window.addEventListener('load', boot);
+
+        // --- TERMINAL ---
+        const termDrawer = document.getElementById('terminal-drawer');
+        const termInput = document.getElementById('terminal-input');
+        const termOutput = document.getElementById('terminal-output');
+        let termOpen = false;
+
+        function toggleTerminal() {
+            termOpen = !termOpen;
+            if(termOpen) {
+                termDrawer.classList.remove('translate-y-full');
+                setTimeout(() => termInput.focus(), 300);
+            } else {
+                termDrawer.classList.add('translate-y-full');
+            }
+        }
+
+        termInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                const cmd = termInput.value.trim().toLowerCase();
+                printLog(`guest@jacson:~$ ${cmd}`);
+                
+                if(cmd === 'help') {
+                    printLog("Available commands: help, clear, contact, whoami, reboot");
+                } else if (cmd === 'clear') {
+                    termOutput.innerHTML = '';
+                } else if (cmd === 'contact') {
+                    printLog("Email: jdott@jacson.tech");
+                    printLog("LinkedIn: linkedin.com/in/jacson-ott");
+                } else if (cmd === 'whoami') {
+                    printLog("User: Guest");
+                    printLog("Role: Observer");
+                    printLog("Access: Read-Only");
+                } else if (cmd === 'reboot') {
+                    location.reload();
+                } else {
+                    printLog(`Command not found: ${cmd}`);
+                }
+                
+                termInput.value = '';
+                termOutput.scrollTop = termOutput.scrollHeight;
+            }
+        });
+
+        function printLog(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            termOutput.appendChild(div);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === '`' || e.key === '~') {
+                e.preventDefault();
+                toggleTerminal();
+            }
+        });
 
         // --- CLOCK ---
         setInterval(() => {
             const now = new Date();
-            document.getElementById('utc-clock').innerText = now.toISOString();
+            document.getElementById('clock').innerText = now.toISOString().replace('T', ' ').substring(0, 19) + ' Z';
         }, 1000);
 
-        // --- FILTERING ---
-        const filters = document.querySelectorAll('.btn-filter');
-        const panels = document.querySelectorAll('.job-panel');
-        
-        filters.forEach(btn => {
-            btn.addEventListener('click', () => {
-                filters.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const cat = btn.getAttribute('data-filter');
-                
-                panels.forEach(p => {
-                    if(cat === 'all' || p.getAttribute('data-category') === cat) {
-                        p.style.display = 'block';
-                        p.style.opacity = '1';
-                    } else {
-                        p.style.display = 'none';
-                    }
-                });
-            });
-        });
-
-        // --- SKILL HIGHLIGHTING ---
-        const badges = document.querySelectorAll('.tech-badge');
-        badges.forEach(b => {
-            b.addEventListener('mouseenter', () => {
-                const targets = b.getAttribute('data-target').split(',');
-                panels.forEach(p => {
-                    const tags = p.getAttribute('data-tags');
-                    if(!targets.some(t => tags.includes(t.trim()))) p.style.opacity = '0.2';
-                    else p.style.border = '1px solid #00ff41';
-                });
-            });
-            b.addEventListener('mouseleave', () => {
-                panels.forEach(p => { p.style.opacity = '1'; p.style.border = ''; });
-            });
-        });
-
-        // --- JSON TOGGLE ---
-        function toggleJsonMode() {
-            const gui = document.getElementById('gui-dashboard');
-            const json = document.getElementById('json-container');
-            const pre = document.getElementById('json-content');
+        // --- BOOT SEQUENCE ---
+        window.onload = () => {
+            const bar = document.getElementById('boot-bar');
+            const screen = document.getElementById('boot-screen');
+            const log = document.getElementById('boot-log');
             
-            if(gui.style.display !== 'none') {
-                gui.style.display = 'none';
-                json.style.display = 'block';
-                pre.innerText = JSON.stringify(resumeData, null, 2);
-            } else {
-                gui.style.display = 'grid';
-                json.style.display = 'none';
+            // Start Load
+            setTimeout(() => bar.style.width = '100%', 100);
+
+            // Fake Logs
+            const logs = [
+                "Mounting /dev/sda1...", "Loading modules: XSIAM, SPLUNK, PY...", 
+                "Decrypting credentials...", "Establishing Uplink...", "Starting UI Service..."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                if(i < logs.length) {
+                    const l = document.createElement('div');
+                    l.className = "text-secondary";
+                    l.innerText = `[OK] ${logs[i]}`;
+                    log.appendChild(l);
+                    log.scrollTop = log.scrollHeight;
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        screen.style.opacity = '0';
+                        setTimeout(() => screen.style.display = 'none', 500);
+                    }, 500);
+                }
+            }, 300);
+
+            renderIncidents();
+            // Init animation
+            animateNetwork();
+        };
+
+        // --- CANVAS ANIMATION (Background) ---
+        function animateNetwork() {
+            const canvas = document.getElementById('network-canvas');
+            const ctx = canvas.getContext('2d');
+            let nodes = [];
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
             }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Create Nodes
+            for(let i=0; i<40; i++) {
+                nodes.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#00f3ff';
+                ctx.fillStyle = '#00f3ff';
+                
+                nodes.forEach((node, i) => {
+                    node.x += node.vx;
+                    node.y += node.vy;
+
+                    // Bounce
+                    if(node.x < 0 || node.x > canvas.width) node.vx *= -1;
+                    if(node.y < 0 || node.y > canvas.height) node.vy *= -1;
+
+                    // Draw Node
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Connect
+                    nodes.forEach((other, j) => {
+                        if(i === j) return;
+                        const dx = node.x - other.x;
+                        const dy = node.y - other.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if(dist < 150) {
+                            ctx.beginPath();
+                            ctx.moveTo(node.x, node.y);
+                            ctx.lineTo(other.x, other.y);
+                            ctx.globalAlpha = 1 - (dist / 150);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                        }
+                    });
+                });
+                
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        // --- CHARTS (Skills) ---
+        let chartInstance = null;
+        function initChart() {
+            if(chartInstance) return;
+            const ctx = document.getElementById('skillsChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Forensics', 'Automation', 'Networking', 'Cloud Sec', 'Compliance', 'DevOps'],
+                    datasets: [{
+                        label: 'Skill Coverage',
+                        data: [95, 90, 85, 80, 75, 70],
+                        backgroundColor: 'rgba(0, 243, 255, 0.2)',
+                        borderColor: '#00f3ff',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#fff'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: { color: '#2a2f3a' },
+                            grid: { color: '#2a2f3a' },
+                            pointLabels: { color: '#cfd7e6', font: { family: 'Share Tech Mono' } },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
         }
     </script>
 </body>
